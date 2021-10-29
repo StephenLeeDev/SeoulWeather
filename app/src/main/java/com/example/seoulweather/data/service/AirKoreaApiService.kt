@@ -1,6 +1,7 @@
 package com.example.seoulweather.data.service
 
 import com.example.seoulweather.constant.Constant
+import com.example.seoulweather.data.model.airquality.AirQualityResponse
 import com.example.seoulweather.data.model.monitoringstation.MonitoringStationsResponse
 import retrofit2.Response
 import retrofit2.http.GET
@@ -16,4 +17,13 @@ interface AirKoreaApiService {
         @Query("tmX") tmX: Double,
         @Query("tmY") tmY: Double
     ): Response<MonitoringStationsResponse>
+
+    @GET("B552584/ArpltnInforInqireSvc/getMsrstnAcctoRltmMesureDnsty" +
+            "?serviceKey=${Constant.AIR_KOREA_SERVICE_KEY}" +
+            "&returnType=json" +
+            "&dataTerm=DAILY" +
+            "&ver=1.3")
+    suspend fun getRealTimeAirQualities(
+        @Query("stationName") stationName: String
+    ): Response<AirQualityResponse>
 }
