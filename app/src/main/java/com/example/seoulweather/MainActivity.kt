@@ -89,7 +89,14 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
                     val monitoringStation =
                         Repository.getNearByMonitoringStation(location.latitude, location.longitude)
 
-                    binding.textView.text = monitoringStation?.stationName
+                    monitoringStation?.let { station ->
+                        station.stationName?.let { stationName ->
+                            val measuredValue =
+                                Repository.getLatestAirQualityData(stationName)
+
+                            binding.textView.text = measuredValue.toString()
+                        }
+                    }
                 }
             }
         }
