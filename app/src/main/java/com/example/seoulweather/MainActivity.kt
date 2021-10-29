@@ -6,13 +6,20 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import com.example.seoulweather.data.Repository
 import com.example.seoulweather.databinding.ActivityMainBinding
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.tasks.CancellationTokenSource
+import kotlinx.coroutines.*
+import kotlin.coroutines.CoroutineContext
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), CoroutineScope {
+
+    private lateinit var job: Job
+    override val coroutineContext: CoroutineContext
+        get() = Dispatchers.Main + job
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
@@ -22,6 +29,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        job = Job()
 
         initVariables()
         requestLocationPermission()
@@ -40,16 +49,7 @@ class MainActivity : AppCompatActivity() {
                     grantResults[0] == PackageManager.PERMISSION_GRANTED
 
         if (locationPermissionGranted) {
-            cancellationTokenSource = CancellationTokenSource()
-
-            cancellationTokenSource?.let { tokenSource ->
-                fusedLocationProviderClient.getCurrentLocation(
-                    LocationRequest.PRIORITY_HIGH_ACCURACY,
-                    tokenSource.token
-                ).addOnSuccessListener { location ->
-                    binding.textView.text = "${location.latitude}, ${location.longitude}"
-                }
-            }
+            fetchAirQualityData()
         } else {
             // TODO : 다이얼로그 팝업으로 권한 재요청 및 앱 종료 선택하도록 유도
         }
@@ -58,6 +58,7 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         cancellationTokenSource?.cancel()
+        job.cancel()
     }
 
     private fun initVariables() {
@@ -73,6 +74,25 @@ class MainActivity : AppCompatActivity() {
             ),
             REQUEST_ACCESS_LOCATION_PERMISSION
         )
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun fetchAirQualityData() {
+        cancellationTokenSource = CancellationTokenSource()
+
+        cancellationTokenSource?.let { tokenSource ->
+            fusedLocationProviderClient.getCurrentLocation(
+                LocationRequest.PRIORITY_HIGH_ACCURACY,
+                tokenSource.token
+            ).addOnSuccessListener { location ->
+                launch(coroutineContext) {
+                    val monitoringStation =
+                        Repository.getNearByMonitoringStation(location.latitude, location.longitude)
+
+                    binding.textView.text = monitoringStation?.stationName
+                }
+            }
+        }
     }
 
     companion object {
