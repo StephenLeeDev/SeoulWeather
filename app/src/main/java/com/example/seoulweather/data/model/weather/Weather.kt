@@ -11,5 +11,5 @@ data class Weather(
     @SerializedName("id")
     val id: Int?,
     @SerializedName("main")
-    val main: String?
+    val weather: String?
 )
